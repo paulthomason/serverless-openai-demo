@@ -3,6 +3,8 @@
 
 // Using the `node-fetch` library to make HTTP requests.
 const fetch = require('node-fetch');
+const fs = require('fs');
+const path = require('path');
 
 // The main handler for the serverless function.
 exports.handler = async (event) => {
@@ -56,6 +58,15 @@ exports.handler = async (event) => {
             };
         }
 
+        // Read the system prompt from the project root
+        const systemPromptPath = path.resolve(__dirname, '..', '..', 'systemprompt.txt');
+        let systemPrompt = '';
+        try {
+            systemPrompt = fs.readFileSync(systemPromptPath, 'utf8').trim();
+        } catch (err) {
+            console.error('Error reading system prompt file:', err);
+        }
+
         // --- Call the OpenAI API ---
         const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -65,7 +76,10 @@ exports.handler = async (event) => {
             },
             body: JSON.stringify({
                 model: 'gpt-4.1',
-                messages: [{ role: 'user', content: prompt }],
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: prompt }
+                ],
                 max_tokens: 150,
             }),
         });
