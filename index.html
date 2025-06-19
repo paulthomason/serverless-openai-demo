@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serverless OpenAI Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Simple spinner animation */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-2xl bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Serverless OpenAI API Demo</h1>
+        <p class="text-gray-600 mb-6">Enter a prompt below. Your API key is handled securely by a serverless backend.</p>
+
+        <!-- Form for user input -->
+        <form id="prompt-form">
+            <div class="flex flex-col mb-4">
+                <label for="prompt-input" class="mb-2 font-semibold text-gray-700">Your Prompt:</label>
+                <textarea id="prompt-input" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="e.g., Write a short poem about a robot learning to dream."></textarea>
+            </div>
+            <button id="submit-button" type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors flex items-center justify-center">
+                <span id="button-text">Get Response</span>
+                <div id="spinner" class="spinner hidden ml-3"></div>
+            </button>
+        </form>
+
+        <!-- Container for the API response -->
+        <div id="response-container" class="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-lg whitespace-pre-wrap hidden">
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">AI Response:</h2>
+            <p id="response-text" class="text-gray-700"></p>
+        </div>
+         <!-- Error Message Box -->
+        <div id="error-box" class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden">
+            <strong class="font-bold">Error:</strong>
+            <span id="error-text" class="block sm:inline"></span>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
