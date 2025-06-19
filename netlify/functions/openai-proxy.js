@@ -47,14 +47,14 @@ exports.handler = async (event) => {
     }
 
     try {
-        // Parse the incoming request body to get the user's prompt
-        const { prompt } = JSON.parse(event.body);
+        // Parse the incoming request body to get the conversation messages
+        const { messages } = JSON.parse(event.body);
 
-        if (!prompt) {
+        if (!messages || !Array.isArray(messages)) {
             return {
                 statusCode: 400,
                 headers,
-                body: JSON.stringify({ error: 'Prompt is required.' }),
+                body: JSON.stringify({ error: 'Messages array is required.' }),
             };
         }
 
@@ -78,7 +78,7 @@ exports.handler = async (event) => {
                 model: 'gpt-4.1',
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt }
+                    ...messages
                 ],
                 max_tokens: 150,
             }),
