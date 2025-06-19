@@ -100,21 +100,3 @@ exports.handler = async (event) => {
         };
     }
 };
-```
-
-### What to Do Next:
-
-1.  **Replace the Code:** Copy the updated code above and replace the entire content of your `netlify/functions/openai-proxy.js` file.
-2.  **Make sure your `script.js` has the full URL:** As mentioned in the original instructions, since you are hosting on GitHub Pages, your `script.js` file **must** use the full URL to your Netlify function. Double-check that it looks like this:
-
-    ```javascript
-    // In script.js
-    const functionUrl = 'https://YOUR_NETLIFY_SITE_NAME.netlify.app/.netlify/functions/openai-proxy';
-    ```
-
-3.  **Redeploy:**
-    * Commit and push the changes to `openai-proxy.js` to your GitHub repository.
-    * Netlify will automatically detect the push and redeploy your function with the new CORS headers. This might take a minute or two.
-    * Commit and push the changes to `script.js` (if you had to update the URL) to your GitHub repository.
-
-Once both are updated, your GitHub Pages site should be able to successfully fetch the response from your Netlify functi
