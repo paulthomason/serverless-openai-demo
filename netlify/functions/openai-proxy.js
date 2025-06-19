@@ -47,14 +47,14 @@ exports.handler = async (event) => {
     }
 
     try {
-        // Parse the incoming request body to get the conversation messages
-        const { messages } = JSON.parse(event.body);
+        // Parse the incoming request body to get the user input
+        const { input } = JSON.parse(event.body);
 
-        if (!messages || !Array.isArray(messages)) {
+        if (!input) {
             return {
                 statusCode: 400,
                 headers,
-                body: JSON.stringify({ error: 'Messages array is required.' }),
+                body: JSON.stringify({ error: 'Input is required.' }),
             };
         }
 
@@ -68,7 +68,7 @@ exports.handler = async (event) => {
         }
 
         // --- Call the OpenAI API ---
-        const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        const openAIResponse = await fetch('https://api.openai.com/v1/responses', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -76,10 +76,8 @@ exports.handler = async (event) => {
             },
             body: JSON.stringify({
                 model: 'gpt-4.1',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    ...messages
-                ],
+                instructions: systemPrompt,
+                input,
                 max_tokens: 150,
             }),
         });
@@ -96,7 +94,13 @@ exports.handler = async (event) => {
         }
 
         const data = await openAIResponse.json();
-        const reply = data.choices[0].message.content;
+        const reply = data.output &&
+            data.output[0] &&
+            data.output[0].content &&
+            data.output[0].content[0] &&
+            data.output[0].content[0].text
+            ? data.output[0].content[0].text
+            : '';
 
         // Send the successful response back to the frontend
         return {

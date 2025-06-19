@@ -29,12 +29,13 @@ function renderChatLog() {
 const functionUrl = 'https://unique-gingersnap-b64334.netlify.app/.netlify/functions/openai-proxy';
 
 async function sendMessages() {
+    const last = messageHistory[messageHistory.length - 1];
     const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ messages: messageHistory })
+        body: JSON.stringify({ input: last.content })
     });
 
     if (!response.ok) {
