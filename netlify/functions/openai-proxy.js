@@ -7,15 +7,12 @@ const fetch = require('node-fetch');
 // The main handler for the serverless function.
 exports.handler = async (event) => {
     // --- CORS Headers ---
-    // Allow requests only from a trusted origin defined in the ALLOWED_ORIGIN environment variable.
-    const allowedOrigin = process.env.ALLOWED_ORIGIN;
+    // These headers are necessary to allow your GitHub Pages site to call this function.
     const headers = {
+        'Access-Control-Allow-Origin': '*', // Allow any origin
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+        'Access-Control-Allow-Methods': 'POST, OPTIONS' // Allow POST and OPTIONS methods
     };
-    if (allowedOrigin) {
-        headers['Access-Control-Allow-Origin'] = allowedOrigin;
-    }
     
     // An OPTIONS request is a "preflight" request that the browser sends
     // to check if the server will allow the actual POST request.
