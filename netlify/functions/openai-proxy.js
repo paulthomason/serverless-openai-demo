@@ -67,17 +67,19 @@ exports.handler = async (event) => {
             console.error('Error reading system prompt file:', err);
         }
 
-        // --- Call the OpenAI API ---
-        const openAIResponse = await fetch('https://api.openai.com/v1/responses', {
+        // --- Call the OpenAI Chat Completions API ---
+        const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
-                model: 'gpt-4.1',
-                instructions: systemPrompt,
-                input,
+                model: 'gpt-4',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: input }
+                ],
                 max_tokens: 150,
             }),
         });
@@ -94,12 +96,11 @@ exports.handler = async (event) => {
         }
 
         const data = await openAIResponse.json();
-        const reply = data.output &&
-            data.output[0] &&
-            data.output[0].content &&
-            data.output[0].content[0] &&
-            data.output[0].content[0].text
-            ? data.output[0].content[0].text
+        const reply = data.choices &&
+            data.choices[0] &&
+            data.choices[0].message &&
+            data.choices[0].message.content
+            ? data.choices[0].message.content
             : '';
 
         // Send the successful response back to the frontend
