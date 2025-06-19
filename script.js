@@ -11,7 +11,7 @@ const errorText = document.getElementById('error-text');
 
 // The URL for your Netlify serverless function.
 // IMPORTANT: This will be the URL of your Netlify site.
-const functionUrl = '/.netlify/functions/openai-proxy';
+const functionUrl = 'https://unique-gingersnap-b64334.netlify.app/.netlify/functions/openai-proxy';
 
 // Listen for form submission
 promptForm.addEventListener('submit', async (event) => {
