@@ -5,13 +5,75 @@ const submitButton = document.getElementById('submit-button');
 const buttonText = document.getElementById('button-text');
 const spinner = document.getElementById('spinner');
 const responseContainer = document.getElementById('response-container');
-const responseText = document.getElementById('response-text');
+const chatLog = document.getElementById('chat-log');
+const optionsContainer = document.getElementById('options-container');
 const errorBox = document.getElementById('error-box');
 const errorText = document.getElementById('error-text');
+
+// Maintain conversation history
+let messageHistory = [];
+
+function renderChatLog() {
+    chatLog.innerHTML = '';
+    for (const msg of messageHistory) {
+        if (msg.role !== 'system') {
+            const p = document.createElement('p');
+            p.textContent = msg.content;
+            p.className = msg.role === 'user' ? 'text-blue-700 font-medium' : 'text-gray-700';
+            chatLog.appendChild(p);
+        }
+    }
+}
+
+function renderOptions(options) {
+    optionsContainer.innerHTML = '';
+    if (!Array.isArray(options)) return;
+    for (const opt of options) {
+        const btn = document.createElement('button');
+        btn.textContent = opt;
+        btn.className = 'bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700';
+        btn.addEventListener('click', async () => {
+            messageHistory.push({ role: 'user', content: opt });
+            renderChatLog();
+            setLoading(true);
+            try {
+                await sendMessages();
+            } catch (err) {
+                console.error('Error sending option:', err);
+                showError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        });
+        optionsContainer.appendChild(btn);
+    }
+}
 
 // The URL for your Netlify serverless function.
 // IMPORTANT: This will be the URL of your Netlify site.
 const functionUrl = 'https://unique-gingersnap-b64334.netlify.app/.netlify/functions/openai-proxy';
+
+async function sendMessages() {
+    const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages: messageHistory })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Server responded with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const { reply, options } = data;
+    messageHistory.push({ role: 'assistant', content: reply });
+    renderChatLog();
+    renderOptions(options);
+    responseContainer.classList.remove('hidden');
+}
 
 // Listen for form submission
 promptForm.addEventListener('submit', async (event) => {
@@ -30,27 +92,11 @@ promptForm.addEventListener('submit', async (event) => {
 
 
     try {
-        // Make a POST request to the serverless function
-        const response = await fetch(functionUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ prompt: userPrompt }),
-        });
-
-        if (!response.ok) {
-            // Handle HTTP errors like 404 or 500
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Server responded with status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        // Display the response
-        responseText.textContent = data.reply;
-        responseContainer.classList.remove('hidden');
-
+        messageHistory.push({ role: 'user', content: userPrompt });
+        renderChatLog();
+        optionsContainer.innerHTML = '';
+        promptInput.value = '';
+        await sendMessages();
     } catch (error) {
         // Show any errors to the user
         console.error('Error fetching AI response:', error);
@@ -83,3 +129,19 @@ function showError(message) {
 function hideError() {
     errorBox.classList.add('hidden');
 }
+
+// Fetch the initial scenario when the page loads
+window.addEventListener('DOMContentLoaded', async () => {
+    setLoading(true);
+    messageHistory.push({ role: 'user', content: 'Start the first scenario.' });
+    renderChatLog();
+    optionsContainer.innerHTML = '';
+    try {
+        await sendMessages();
+    } catch (error) {
+        console.error('Error fetching initial scenario:', error);
+        showError(error.message);
+    } finally {
+        setLoading(false);
+    }
+});
