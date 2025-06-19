@@ -57,7 +57,7 @@ exports.handler = async (event) => {
         }
 
         // --- Call the OpenAI API ---
-        const openAIResponse = await fetch('https://api.openai.com/v1/responses', {
+        const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
