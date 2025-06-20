@@ -155,9 +155,8 @@
 
     <script>
         // --- CONFIGURATION ---
-        // WARNING: This is INSECURE for a public website.
-        // Replace with your actual OpenAI API key.
-        const OPENAI_API_KEY = ""; 
+        // URL of the Netlify serverless function that proxies requests to the OpenAI API
+        const FUNCTION_URL = 'https://unique-gingersnap-b64334.netlify.app/.netlify/functions/openai-proxy';
         
         const DEFAULT_PROMPT = (
             "You are simulating an exaggerated, entertaining day in the life of Gorgina, " +
@@ -201,19 +200,13 @@
             isLoading = true;
             setLoadingState(true, "Contacting the clinic...");
 
-            if (!OPENAI_API_KEY || OPENAI_API_KEY === "YOUR_API_KEY_HERE") {
-                displayError("OpenAI API key not configured. Please edit the HTML file to add your key.");
-                return;
-            }
-
             messages.push({ "role": "user", "content": userMessage });
 
             try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                const response = await fetch(FUNCTION_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         model: "gpt-4-turbo",
