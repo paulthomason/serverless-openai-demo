@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Day in the Life of Gorgina</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Inter:wght@400;500&display=swap');
+
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --primary-color: #00ff9d;
+            --secondary-color: #4f4f4f;
+            --border-color: #333;
+            --hover-bg: #2a2a2a;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #252525;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--border-color);
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        header h1 {
+            font-family: 'VT323', monospace;
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin: 0;
+            text-align: center;
+            text-shadow: 0 0 5px var(--primary-color);
+        }
+        
+        #story-area {
+            padding: 24px;
+            height: 300px;
+            overflow-y: auto;
+            border-bottom: 2px solid var(--border-color);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        #story-text::after {
+            content: '▋';
+            display: inline-block;
+            animation: blink 1s step-end infinite;
+            color: var(--primary-color);
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        #options-area {
+            padding: 16px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .option-button {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+            padding: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 1rem;
+            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+        }
+
+        .option-button:hover, .option-button:focus {
+            background-color: var(--hover-bg);
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 255, 157, 0.2);
+        }
+
+        .option-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        #status-bar {
+            padding: 12px;
+            background-color: var(--border-color);
+            text-align: center;
+            font-size: 0.9rem;
+            height: 40px; /* fixed height */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-left-color: var(--primary-color);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <header>
+            <h1>Gorgina's Day</h1>
+        </header>
+        <div id="story-area">
+            <p id="story-text"></p>
+        </div>
+        <div id="options-area">
+            <button class="option-button" id="option-1" data-choice="1"></button>
+            <button class="option-button" id="option-2" data-choice="2"></button>
+            <button class="option-button" id="option-3" data-choice="3"></button>
+        </div>
+        <div id="status-bar">
+            <p id="status-text">Initializing game...</p>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // WARNING: This is INSECURE for a public website.
+        // Replace with your actual OpenAI API key.
+        const OPENAI_API_KEY = ""; 
+        
+        const DEFAULT_PROMPT = (
+            "You are simulating an exaggerated, entertaining day in the life of Gorgina, " +
+            "the internal medicine referral coordinator at a specialty veterinary clinic. " +
+            "Gorgina acts as the central coordinator, managing a hectic workload by handling " +
+            "requests from two internal medicine specialists, Dr. Anderson and Dr. Doyle, (both women)" +
+            "who frequently send Teams messages requesting patient records from other veterinary clinics. " +
+            "Gorgina also manages scheduling appointments and conveys messages between clients and doctors " +
+            "about their pets. She often interacts humorously and warmly with department colleagues, which " +
+            "include: Dr. Anderson (DVM), Dr. Doyle (DVM), Mel (CVT), Nova, Maddie (CVT), " +
+            "Paul, and Pablo. After each scenario respond only with valid JSON containing " +
+            "keys 'reply' and 'options'. The 'reply' is a short description of the next situation. " +
+            "The 'options' array must contain exactly three concise numbered actions the user can take. " +
+            "Avoid trivial choices and maintain engaging, humorous scenarios consistent with the lively " +
+            "atmosphere of Gorgina’s busy workday."
+        );
+
+        // --- DOM ELEMENTS ---
+        const storyTextElement = document.getElementById('story-text');
+        const optionButtons = [
+            document.getElementById('option-1'),
+            document.getElementById('option-2'),
+            document.getElementById('option-3')
+        ];
+        const statusTextElement = document.getElementById('status-text');
+        const statusBarElement = document.getElementById('status-bar');
+
+        // --- GAME STATE ---
+        let messages = [];
+        let isLoading = false;
+        let typeWriterInterval;
+
+        // --- CORE FUNCTIONS ---
+
+        /**
+         * Sends the conversation history to the OpenAI API and gets the next part of the story.
+         * @param {string} userMessage - The message/choice from the user.
+         */
+        async function requestChat(userMessage) {
+            if (isLoading) return;
+            isLoading = true;
+            setLoadingState(true, "Contacting the clinic...");
+
+            if (!OPENAI_API_KEY || OPENAI_API_KEY === "YOUR_API_KEY_HERE") {
+                displayError("OpenAI API key not configured. Please edit the HTML file to add your key.");
+                return;
+            }
+
+            messages.push({ "role": "user", "content": userMessage });
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4-turbo",
+                        messages: [
+                            { "role": "system", "content": DEFAULT_PROMPT },
+                            ...messages
+                        ],
+                        temperature: 0.7,
+                        response_format: { "type": "json_object" }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${errorData.error.message} (Status: ${response.status})`);
+                }
+
+                // **FIXED LOGIC START**
+                const apiResponseObject = await response.json();
+                console.log("Full AI Response Object:", apiResponseObject);
+
+                if (!apiResponseObject.choices?.[0]?.message?.content) {
+                    throw new Error("AI response did not contain the expected message content.");
+                }
+
+                const contentString = apiResponseObject.choices[0].message.content;
+                console.log("Nested Content String:", contentString);
+
+                const data = JSON.parse(contentString);
+                console.log("Parsed Game Data:", data);
+                // **FIXED LOGIC END**
+
+                if (isValidResponse(data)) {
+                    messages.push({ "role": "assistant", "content": data.reply });
+                    updateUI(data.reply, data.options);
+                } else {
+                    throw new Error("The AI's message content was not in the expected {reply, options} format.");
+                }
+
+            } catch (error) {
+                messages.pop(); // Remove the user's message if the request failed
+                console.error("Game Error:", error);
+                displayError(error.message);
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        /**
+         * Updates the UI with the new story text and options.
+         * @param {string} reply - The story text from the AI.
+         * @param {string[]} options - The list of choices for the user.
+         */
+        function updateUI(reply, options) {
+            startTypewriter(reply);
+
+            optionButtons.forEach((button, index) => {
+                if (options[index]) {
+                    button.textContent = options[index];
+                    button.style.display = 'block';
+                    button.disabled = false;
+                } else {
+                    button.style.display = 'none';
+                }
+            });
+            setLoadingState(false, "Your turn...");
+        }
+
+        /**
+         * Handles the click event for an option button.
+         * @param {number} choiceNumber - The number of the chosen option (1, 2, or 3).
+         */
+        function handleOptionSelect(choiceNumber) {
+            // Send the option number as a string, as per the Python logic
+            requestChat(String(choiceNumber));
+        }
+        
+        /**
+         * Starts the game by sending an initial message to the AI.
+         */
+        function startGame() {
+            messages = [];
+            requestChat("Start the conversation.");
+        }
+        
+        // --- HELPER & UI FUNCTIONS ---
+
+        /**
+         * Simulates a typewriter effect for displaying text.
+         * @param {string} text - The text to display.
+         */
+        function startTypewriter(text) {
+            clearInterval(typeWriterInterval);
+            storyTextElement.textContent = '';
+            let i = 0;
+            typeWriterInterval = setInterval(() => {
+                if (i < text.length) {
+                    storyTextElement.textContent += text.charAt(i);
+                    i++;
+                    storyTextElement.parentElement.scrollTop = storyTextElement.parentElement.scrollHeight;
+                } else {
+                    clearInterval(typeWriterInterval);
+                }
+            }, 30); // Adjust speed of typing here (milliseconds)
+        }
+
+        /**
+         * Sets the loading state of the UI (buttons and status bar).
+         * @param {boolean} loading - Whether the app is currently loading.
+         * @param {string} statusMessage - The message to display in the status bar.
+         */
+        function setLoadingState(loading, statusMessage = '') {
+            statusBarElement.innerHTML = ''; // Clear previous content
+            if (loading) {
+                optionButtons.forEach(button => button.disabled = true);
+                const spinner = document.createElement('div');
+                spinner.className = 'spinner';
+                statusBarElement.appendChild(spinner);
+            } else {
+                optionButtons.forEach(button => button.disabled = false);
+                statusTextElement.textContent = statusMessage;
+                statusBarElement.appendChild(statusTextElement);
+            }
+        }
+        
+        /**
+         * Displays an error message to the user.
+         * @param {string} message - The error message.
+         */
+        function displayError(message) {
+            storyTextElement.style.color = '#ff6b6b';
+            startTypewriter(`ERROR: ${message}`);
+            setLoadingState(false, "An error occurred. Please refresh.");
+            optionButtons.forEach(button => button.style.display = 'none');
+        }
+
+        /**
+         * Validates the structure of the AI's JSON response.
+         * @param {object} data - The parsed JSON data from the AI.
+         * @returns {boolean} - True if the response is valid.
+         */
+        function isValidResponse(data) {
+            return (
+                data &&
+                typeof data === 'object' &&
+                'reply' in data &&
+                typeof data.reply === 'string' &&
+                'options' in data &&
+                Array.isArray(data.options) &&
+                data.options.length > 0
+            );
+        }
+
+        // --- INITIALIZATION ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            optionButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    handleOptionSelect(button.dataset.choice);
+                });
+            });
+
+            startGame();
+        });
+    </script>
+
+</body>
+</html>
+
