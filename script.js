@@ -8,6 +8,8 @@ const responseContainer = document.getElementById('response-container');
 const responseText = document.getElementById('response-text');
 const errorBox = document.getElementById('error-box');
 const errorText = document.getElementById('error-text');
+const logContainer = document.getElementById('log-container');
+const logText = document.getElementById('log-text');
 
 // The URL for your Netlify serverless function.
 // IMPORTANT: This will be the URL of your Netlify site.
@@ -31,6 +33,7 @@ promptForm.addEventListener('submit', async (event) => {
 
     try {
         // Make a POST request to the serverless function
+        appendLog('Sending prompt: ' + userPrompt);
         const response = await fetch(functionUrl, {
             method: 'POST',
             headers: {
@@ -39,13 +42,19 @@ promptForm.addEventListener('submit', async (event) => {
             body: JSON.stringify({ prompt: userPrompt }),
         });
 
+        appendLog('Received status: ' + response.status);
+
         if (!response.ok) {
             // Handle HTTP errors like 404 or 500
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Server responded with status: ${response.status}`);
+            const errorText = await response.text();
+            appendLog('Error response body: ' + errorText);
+            let parsed;
+            try { parsed = JSON.parse(errorText); } catch {}
+            throw new Error((parsed && parsed.error) || `Server responded with status: ${response.status}`);
         }
 
         const data = await response.json();
+        appendLog('Success response: ' + JSON.stringify(data));
         
         // Display the response
         responseText.textContent = data.reply;
@@ -54,6 +63,7 @@ promptForm.addEventListener('submit', async (event) => {
     } catch (error) {
         // Show any errors to the user
         console.error('Error fetching AI response:', error);
+        appendLog('Error: ' + error.message);
         showError(error.message);
     } finally {
         // --- Hide Loading State ---
@@ -82,4 +92,11 @@ function showError(message) {
 
 function hideError() {
     errorBox.classList.add('hidden');
+}
+
+function appendLog(message) {
+    if (logText) {
+        logText.textContent += message + '\n';
+        logContainer.classList.remove('hidden');
+    }
 }
